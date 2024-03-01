@@ -1,19 +1,35 @@
 import 'dart:io';
 
-class Room {
+class Interactible {
   int id = -1;
-  String? name;
-  List<Room> routes = [];
+  String name = "???";
+  String type = "-";
+  String description = "";
 
-  Room(this.id, this.name);
+  Interactible(this.id, this.name, this.type);
+}
+
+class Item extends Interactible {
+  List<Item> items = [];
+
+  Item(int id, String name) : super(id, name, 'item');
+}
+
+class Room extends Interactible {
+  List<Room> routes = [];
+  List<Item> items = [];
+
+  Room(int id, String name) : super(id, name, 'room');
 }
 
 void print_status(Room curr_room) {
-  print("You are at the ${curr_room.name} .");
-  print("Where do you want to go?");
+  print("You are at the [${curr_room.name}] .");
+  print("What do you want to do?");
 
+  int choice_idx = 0;
+  print("[0]: Stay.");
   for (int i = 0; i < curr_room.routes.length; i++) {
-    print("${i}: ${curr_room.routes[i].name}");
+    print("[${++choice_idx}]: Go to [${curr_room.routes[i].name}]");
   }
 }
 
@@ -29,6 +45,12 @@ Room switch_room(Room curr_room, int route_idx) {
   return new_room;
 }
 
+(Room, Room) connect_rooms(Room room_a, Room room_b) {
+  room_a.routes.add(room_b);
+  room_b.routes.add(room_a);
+  return (room_a, room_b);
+}
+
 int main() {
   Room curr_room;
   bool is_gaming = true;
@@ -42,10 +64,9 @@ int main() {
   Room kitchen = Room(1, "kitchen");
   Room outside = Room(2, "outside");
 
-  living_room.routes.add(kitchen);
-  living_room.routes.add(outside);
-  kitchen.routes.add(living_room);
-  outside.routes.add(living_room);
+  (living_room, kitchen) = connect_rooms(living_room, kitchen);
+  (living_room, outside) = connect_rooms(living_room, outside);
+
   curr_room = living_room;
 
   // gameplay loop
@@ -59,7 +80,7 @@ int main() {
     // check if input is valid
 
     // switch rooms
-    curr_room = switch_room(curr_room, int_user_input);
+    curr_room = switch_room(curr_room, int_user_input - 1);
 
     // CR for cleanliness
     print("-");
