@@ -1,51 +1,74 @@
 import 'dart:io';
 
-class Interactible {
+class Screen {
   int id = -1;
   String name = "???";
-  String type = "-";
-  String description = "";
+  String? type;
+  String? description;
+  List<Screen> routes = [];
 
-  Interactible(this.id, this.name, this.type);
+  Screen(this.id, this.name, [String? this.description]);
+
+  Screen.room(int id, String name, [String? description])
+      : this.id = id,
+        this.name = name,
+        this.type = 'room',
+        this.description = description;
+
+  Screen.item(int id, String name, [String? description])
+      : this.id = id,
+        this.name = name,
+        this.type = 'item',
+        this.description = description;
+
+  String get_route_action() {
+    String action_str = "";
+    // if there is a description, show it
+    if (this.description != null) {
+      action_str = "${this.description}";
+    }
+
+    // if there is none, show defaults
+    if (this.description == null) {
+      switch (this.type) {
+        case 'room':
+          action_str = 'Go to [${this.name}]';
+          break;
+        case 'item':
+          action_str = 'Inspect [${this.name}]';
+          break;
+        default:
+          action_str = "???";
+      }
+    }
+
+    return action_str;
+  }
 }
 
-class Item extends Interactible {
-  List<Item> items = [];
-
-  Item(int id, String name) : super(id, name, 'item');
-}
-
-class Room extends Interactible {
-  List<Room> routes = [];
-  List<Item> items = [];
-
-  Room(int id, String name) : super(id, name, 'room');
-}
-
-Room switch_room(Room curr_room, int route_idx) {
-  if (route_idx < 0 || route_idx > curr_room.routes.length) {
+Screen switch_screen(Screen curr_screen, int route_idx) {
+  if (route_idx < 0 || route_idx > curr_screen.routes.length) {
     print("That's not a valid option.");
-    return curr_room;
+    return curr_screen;
   }
 
-  Room new_room = curr_room.routes[route_idx];
+  Screen new_screen = curr_screen.routes[route_idx];
 
-  print("You go to [${new_room.name}].");
-  return new_room;
+  return new_screen;
 }
 
-(Room, Room) connect_rooms(Room room_a, Room room_b) {
-  room_a.routes.add(room_b);
-  room_b.routes.add(room_a);
-  return (room_a, room_b);
+(Screen, Screen) connect_screens(Screen screen_a, Screen screen_b) {
+  screen_a.routes.add(screen_b);
+  screen_b.routes.add(screen_a);
+  return (screen_a, screen_b);
 }
 
-bool check_valid_input(Room curr_room, int choice_idx) {
+bool check_valid_input(Screen curr_screen, int choice_idx) {
   if (choice_idx < 0) {
     return false;
   }
 
-  int no_of_interactibles = curr_room.routes.length + curr_room.items.length;
+  int no_of_interactibles = curr_screen.routes.length;
   if (choice_idx > no_of_interactibles) {
     return false;
   }
@@ -53,57 +76,69 @@ bool check_valid_input(Room curr_room, int choice_idx) {
   return true;
 }
 
-void print_status(Room curr_room) {
-  print("You are at the [${curr_room.name}] .");
+void print_status(Screen curr_screen) {
+  if (curr_screen.type == 'room') {
+    print("You are in the [${curr_screen.name}] .");
+  } else {
+    print("You are at the [${curr_screen.name}]");
+  }
+
   print("What do you want to do?");
 
   int choice_idx = 0;
-  print("[0]: Stay.");
-  for (int i = 0; i < curr_room.routes.length; i++) {
-    print("[${++choice_idx}]: Go to [${curr_room.routes[i].name}].");
+  print("[${choice_idx++}]: Stay.");
+  for (int i = 0; i < curr_screen.routes.length; i++) {
+    //print("[${++choice_idx}]: Go to [${curr_screen.routes[i].name}].");
+    print('[${++choice_idx}]: ${curr_screen.routes[i].get_route_action()}');
   }
 }
 
 int main() {
-  Room curr_room;
+  Screen curr_screen;
+  int curr_id = 0;
   bool is_gaming = true;
   String? user_input;
 
   print("Welcome.");
 
-  // Initialize rooms
-  // test rooms, just for testing
-  Room living_room = Room(0, "living room");
-  Room kitchen = Room(1, "kitchen");
-  Room outside = Room(2, "outside");
+  // Initialize screens
+  // test screens, just for testing
+  Screen outside = Screen.room(curr_id++, "outside", "Leave the house.");
+  Screen living_room = Screen.room(curr_id++, "living screen");
+  Screen kitchen = Screen.room(curr_id++, "kitchen");
 
-  (living_room, kitchen) = connect_rooms(living_room, kitchen);
-  (living_room, outside) = connect_rooms(living_room, outside);
+  Screen knife = Screen.item(curr_id++, "knife");
+  Screen painting = Screen.item(curr_id++, "painting", "Stare at [painting].");
 
-  curr_room = living_room;
+  (living_room, kitchen) = connect_screens(living_room, kitchen);
+  (living_room, outside) = connect_screens(living_room, outside);
+  (kitchen, knife) = connect_screens(kitchen, knife);
+  (living_room, painting) = connect_screens(living_room, painting);
+
+  curr_screen = living_room;
 
   // gameplay loop
   while (is_gaming) {
-    print_status(curr_room);
+    print_status(curr_screen);
 
     // get user input
     user_input = stdin.readLineSync() ?? "";
     int int_user_input = int.tryParse(user_input) ?? -1;
 
     // check if input is valid
-    if (!check_valid_input(curr_room, int_user_input)) {
+    if (!check_valid_input(curr_screen, int_user_input)) {
       print("That's not a valid option.");
       print("-");
       continue;
     }
 
-    // switch rooms
-    curr_room = switch_room(curr_room, int_user_input - 1);
+    // switch screens
+    curr_screen = switch_screen(curr_screen, int_user_input - 1);
 
     // CR for cleanliness
     print("-");
 
-    if (curr_room.name == "outside") {
+    if (curr_screen.name == "outside") {
       is_gaming = false;
     }
   }
